@@ -19,7 +19,7 @@ type lists struct {
 
 func One() model.Result {
 	day := uint8(1)
-	lists := parseInput("./inputs/day1").sortLists()
+	lists := parseDay1Input("./inputs/day1").sortLists()
 	return model.Result{Day: &day, Part1: lists.calcPart1(), Part2: lists.calcPart2()}
 }
 
@@ -61,7 +61,7 @@ func (l lists) sortLists() lists {
 	return l
 }
 
-func parseInput(filePath string) lists {
+func parseDay1Input(filePath string) lists {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("Error opening file at %s", filePath)

@@ -35,8 +35,8 @@ reportsLoop:
 		isAsc := iDiff > 0
 
 		// start at 2 since this is a lookback and first pair already processed above
-		for i := 2; i < len(report); i++ {
-			diff := report[i] - report[i-1]
+		for j := 2; j < len(report); j++ {
+			diff := report[j] - report[j-1]
 			if isSevereDelta(diff) || isAsc != (diff > 0) {
 				continue reportsLoop
 			}

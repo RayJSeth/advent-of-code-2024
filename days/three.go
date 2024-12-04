@@ -39,13 +39,7 @@ pLoop:
 					continue pLoop
 				}
 			}
-			if iEnd-multEnd > 2 {
-				iOps := strings.SplitN(string(p[multEnd:iEnd]), string(iSep), 2)
-				multiplicand, _ := strconv.Atoi(iOps[0])
-				multiplier, _ := strconv.Atoi(iOps[1])
-
-				res += (multiplicand * multiplier)
-			}
+			tryMul(strings.SplitN(string(p[multEnd:iEnd]), string(iSep), 2), &res)
 		}
 	}
 	return &res
@@ -80,16 +74,19 @@ pLoop:
 					continue pLoop
 				}
 			}
-			if iEnd-multOrDoEnd > 2 {
-				iOps := strings.SplitN(string(p[multOrDoEnd:iEnd]), string(iSep), 2)
-				multiplicand, _ := strconv.Atoi(iOps[0])
-				multiplier, _ := strconv.Atoi(iOps[1])
-
-				res += (multiplicand * multiplier)
-			}
+			tryMul(strings.SplitN(string(p[multOrDoEnd:iEnd]), string(iSep), 2), &res)
 		}
 	}
 	return &res
+}
+
+func tryMul(iOps []string, res *int) {
+	if len(iOps) == 2 {
+		multiplicand, _ := strconv.Atoi(iOps[0])
+		multiplier, _ := strconv.Atoi(iOps[1])
+
+		*res += (multiplicand * multiplier)
+	}
 }
 
 func parseDay3Input(filePath string) Program {

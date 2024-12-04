@@ -57,7 +57,7 @@ pLoop:
 	for i := 0; i < len(p)-8; i++ {
 		multOrDoEnd := i + len(iPre)
 		dontInstEnd := i + len(iDont)
-		// luckily "mult(" and "do()" are same len so can just check one sub for match
+		// luckily "mul(" and "do()" are same len so can just check one sub for match
 		multOrDoSub := p[i:multOrDoEnd]
 		// unluckily, "don't()" is a diff len, but still less than 8 so can lookahead
 		// without risk of OOB

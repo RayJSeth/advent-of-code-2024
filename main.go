@@ -6,4 +6,5 @@ func main() {
 	days.One().Print()
 	days.Two().Print()
 	days.Three().Print()
+	days.Four().Print()
 }

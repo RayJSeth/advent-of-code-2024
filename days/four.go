@@ -11,13 +11,10 @@ import (
 
 type WordSearch [][]string
 
-var match = "XMAS"
-var matchLen = len(match)
-
 func Four() model.Result {
 	day := uint8(4)
 	wordSearch := parseDay4Input("./inputs/day4")
-	return model.Result{Day: &day, Part1: wordSearch.calcPart1()}
+	return model.Result{Day: &day, Part1: wordSearch.calcPart1(), Part2: wordSearch.calcPart2()}
 }
 
 func (w WordSearch) calcPart1() *int {
@@ -35,18 +32,35 @@ func (w WordSearch) calcPart1() *int {
 				}
 				xDir := (dir/3 - 1)
 				yDir := (dir%3 - 1)
-				if w.checkDir(i, j, xDir, yDir) { // right *
+				if w.checkDir(i, j, xDir, yDir, "XMAS") { // right *
 					hits++
 				}
 			}
 		}
 	}
+
 	return &hits
 }
 
-func (w WordSearch) checkDir(rowIdx int, colIdx int, xDir int, yDir int) bool {
+func (w WordSearch) calcPart2() *int {
+	hits := 0
+
+	for i, l := range w {
+		l = w[i]
+		for j := 0; j < len(l); j++ {
+			if w.checkCross(i, j, "MAS") {
+				hits++
+			}
+		}
+	}
+
+	return &hits
+}
+
+func (w WordSearch) checkDir(rowIdx int, colIdx int, xDir int, yDir int, match string) bool {
 	rows := len(w)
 	cols := len(w[rowIdx])
+	matchLen := len(match)
 
 	// skip if not enough room left in a dir for a match
 	if rowIdx+xDir*(matchLen-1) < 0 || rowIdx+xDir*(matchLen-1) >= rows ||
@@ -55,13 +69,54 @@ func (w WordSearch) checkDir(rowIdx int, colIdx int, xDir int, yDir int) bool {
 	}
 
 	var substring string
-	for i := 0; i < len(match); i++ {
+	for i := 0; i < matchLen; i++ {
 		nr := rowIdx + xDir*i
 		nc := colIdx + yDir*i
 		substring += w[nr][nc]
 	}
 
 	return substring == match
+}
+
+func (w WordSearch) checkCross(rowIdx int, colIdx int, match string) bool {
+	rows := len(w)
+	cols := len(w[rowIdx])
+	// split in half flooring since centering on rune
+	matchLen := len(match)
+	if matchLen%2 != 1 {
+		log.Panic("cannot check cross on even length strings")
+	}
+
+	matchExtn := int(float64(matchLen / 2))
+	// skip if not enough room left in all dirs for a cross
+	if rowIdx-matchExtn < 0 || rowIdx+matchExtn >= rows ||
+		colIdx-matchExtn < 0 || colIdx+matchExtn >= cols {
+		return false
+	}
+
+	// using go is like always being in an interview
+	// where they ask you to do something basic without a std lib func
+	var matchRev string
+	matchRunes := []rune(match)
+	for i, j := 0, len(matchRunes)-1; i < j; i, j = i+1, j-1 {
+		matchRunes[i], matchRunes[j] = matchRunes[j], matchRunes[i]
+	}
+	matchRev = string(matchRunes)
+
+	var NWSESubstring string
+	var NESWSubstring string
+	for i := 1; i <= matchExtn; i++ {
+		currCenter := w[rowIdx][colIdx]
+		NWSESubstring += w[rowIdx-i][colIdx-i] + currCenter + w[rowIdx+i][colIdx+i]
+		NESWSubstring += w[rowIdx-i][colIdx+i] + currCenter + w[rowIdx+i][colIdx-i]
+	}
+
+	if (NWSESubstring == match || NWSESubstring == matchRev) &&
+		(NESWSubstring == match || NESWSubstring == matchRev) {
+		return true
+	}
+
+	return false
 }
 
 func parseDay4Input(filePath string) WordSearch {

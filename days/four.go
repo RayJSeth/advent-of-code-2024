@@ -26,8 +26,8 @@ func (w WordSearch) calcPart1() *int {
 	for i, l := range w {
 		for j := 0; j < len(l); j++ {
 			// 8 cardinal directions (n,s,e,w,ne,nw,se,sw) - skipping neutral (0, 0)
-			// this works like a clock where the "big hand" xDir sweeps		-1, -1, -1,  0,  0,  0,  1,  1,  1
-			// while yDir using modulo acts as the "small hand" and ticks	-1,  0,  1, -1,  0,  1, -1,  0   1
+			// this works like a clock where the "big hand" xDir sweeps	-1, -1, -1,  0,  0,  0,  1,  1,  1
+			// while yDir using modulo acts as the "small hand" and ticks -1,  0,  1, -1,  0,  1, -1,  0   1
 			// generating all combinations :)
 			for dir := 0; dir < 9; dir++ {
 				if dir == 4 {

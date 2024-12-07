@@ -47,26 +47,18 @@ func (u Update) calcPart1() *int {
 
 func (u Update) calcPart2() *int {
 	mPgSum := 0
-	badSets := []PageSet{}
 
 	for _, set := range u.Sets {
-		for _, rule := range u.Rules {
-			if !rule.checkSet(set) {
-				badSets = append(badSets, set)
-				break
-			}
+		if set.fixSet(u.Rules) {
+			mPgSum += set.getMiddlePage()
 		}
-	}
-
-	for _, badSet := range badSets {
-		badSet.fixSet(u.Rules)
-		mPgSum += badSet.getMiddlePage()
 	}
 
 	return &mPgSum
 }
 
-func (set PageSet) fixSet(rules []Rule) {
+func (set PageSet) fixSet(rules []Rule) bool {
+	neededFix := false
 	// swap until no more swaps can be made
 	// would be better to detect conflicting rules and panic but I'd need
 	// some kind of graph, so do cheap exit case for now
@@ -79,6 +71,7 @@ func (set PageSet) fixSet(rules []Rule) {
 
 			if mustBeforeIdx != -1 && mustAfterIdx != -1 && mustBeforeIdx > mustAfterIdx {
 				set[mustBeforeIdx], set[mustAfterIdx] = set[mustAfterIdx], set[mustBeforeIdx]
+				neededFix = true
 				swapped = true
 				maxIters--
 			}
@@ -92,6 +85,7 @@ func (set PageSet) fixSet(rules []Rule) {
 			break
 		}
 	}
+	return neededFix
 }
 
 func indexOfPage(arr []int, match int) int {

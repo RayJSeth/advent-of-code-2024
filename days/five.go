@@ -26,7 +26,7 @@ type Update struct {
 func Five() model.Result {
 	day := uint8(5)
 	update := parseDay5Input("./inputs/day5")
-	return model.Result{Day: &day, Part1: update.calcPart1()}
+	return model.Result{Day: &day, Part1: update.calcPart1(), Part2: update.calcPart2()}
 }
 
 func (u Update) calcPart1() *int {
@@ -45,6 +45,65 @@ func (u Update) calcPart1() *int {
 	return &mPgSum
 }
 
+func (u Update) calcPart2() *int {
+	mPgSum := 0
+	badSets := []PageSet{}
+
+	for _, set := range u.Sets {
+		for _, rule := range u.Rules {
+			if !rule.checkSet(set) {
+				badSets = append(badSets, set)
+				break
+			}
+		}
+	}
+
+	for _, badSet := range badSets {
+		badSet.fixSet(u.Rules)
+		mPgSum += badSet.getMiddlePage()
+	}
+
+	return &mPgSum
+}
+
+func (set PageSet) fixSet(rules []Rule) {
+	// swap until no more swaps can be made
+	// would be better to detect conflicting rules and panic but I'd need
+	// some kind of graph, so do cheap exit case for now
+	maxIters := 1000
+	for {
+		swapped := false
+		for _, rule := range rules {
+			mustBeforeIdx := indexOfPage(set, rule.MustBefore)
+			mustAfterIdx := indexOfPage(set, rule.MustAfter)
+
+			if mustBeforeIdx != -1 && mustAfterIdx != -1 && mustBeforeIdx > mustAfterIdx {
+				set[mustBeforeIdx], set[mustAfterIdx] = set[mustAfterIdx], set[mustBeforeIdx]
+				swapped = true
+				maxIters--
+			}
+		}
+
+		if maxIters == 0 {
+			log.Panicf("exceeded %d shuffles, check rules for contradiction", maxIters)
+		}
+
+		if !swapped {
+			break
+		}
+	}
+}
+
+func indexOfPage(arr []int, match int) int {
+	for i, val := range arr {
+		if val == match {
+			return i
+		}
+	}
+
+	return -1
+}
+
 func (set PageSet) getMiddlePage() int {
 	setLen := len(set)
 	if setLen%2 != 1 {
@@ -59,16 +118,6 @@ func (rule Rule) checkSet(set PageSet) bool {
 	mustAfterIdx := indexOfPage(set, rule.MustAfter)
 
 	return mustBeforeIdx == -1 || mustAfterIdx == -1 || mustBeforeIdx < mustAfterIdx
-}
-
-func indexOfPage(arr []int, match int) int {
-	for i, val := range arr {
-		if val == match {
-			return i
-		}
-	}
-
-	return -1
 }
 
 func parseDay5Input(filePath string) Update {

@@ -75,24 +75,21 @@ func (fm *FloorMap) calcPart1() *int {
 		}
 
 		steps += fm.handleMovement(newRow, newCol)
-
 	}
 }
 
 func (fm *FloorMap) calcPart2(originalRun *FloorMap) *int {
 	loops := 0
-
 	ogCells := fm.Cells.deepCopy()
 	ogGuard := fm.Guard
 
 	for row := 0; row < len(fm.Cells); row++ {
 		for col := 0; col < len(fm.Cells[row]); col++ {
-
 			if originalRun.Cells[row][col].Icon == 'x' {
 				fm.Cells[row][col].Icon = '#'
-
 				fm.Guard = ogGuard
 				steps := 0
+
 				for {
 					var newRow int
 					var newCol int
@@ -134,19 +131,23 @@ func (fm *FloorMap) calcPart2(originalRun *FloorMap) *int {
 func (original FloorMap) deepCopy() FloorMap {
 	cellsCopy := original.Cells.deepCopy()
 	guardCopy := original.Guard
+
 	return FloorMap{Cells: cellsCopy, Guard: guardCopy}
 }
 
 func (original Cells) deepCopy() Cells {
 	copied := make(Cells, len(original))
+
 	for i := range original {
 		copied[i] = append([]Cell(nil), original[i]...)
 	}
+
 	return copied
 }
 
 func (fm *FloorMap) handleMovement(newRow, newCol int) int {
 	newSteps := 0
+
 	if fm.Cells[newRow][newCol].Icon == '#' {
 		fm.Guard.Heading = (fm.Guard.Heading + 1) % 4
 		return newSteps
@@ -204,6 +205,7 @@ func (fm FloorMap) isRetracingSteps() bool {
 			}
 		}
 	}
+
 	return false
 }
 
@@ -231,6 +233,7 @@ func parseDay6Input(filePath string) FloorMap {
 	scanner := bufio.NewScanner(file)
 	rowNum := 0
 	guard := Guard{}
+
 	for scanner.Scan() {
 		row := strings.Split(scanner.Text(), "")
 		rowCells := []Cell{}
@@ -258,5 +261,6 @@ func parseDay6Input(filePath string) FloorMap {
 		cells = append(cells, rowCells)
 		rowNum++
 	}
+
 	return FloorMap{Cells: cells, Guard: guard}
 }

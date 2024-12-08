@@ -8,4 +8,5 @@ func main() {
 	days.Three().Print()
 	days.Four().Print()
 	days.Five().Print()
+	days.Six().Print()
 }

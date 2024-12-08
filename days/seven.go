@@ -27,22 +27,22 @@ func Seven() model.Result {
 func (cs Calibrations) calcPart1() *int {
 	var cTot int
 	var wg sync.WaitGroup
-	results := make(chan int, len(cs))
+	r := make(chan int, len(cs))
 
 	for _, c := range cs {
 		wg.Add(1)
 		go func(c Calibration) {
 			defer wg.Done()
 			if calcCombinations(c.Operands, c.Operands[0], c.Target) {
-				results <- c.Target // Send the result to the channel
+				r <- c.Target
 			}
 		}(c)
 	}
 
 	wg.Wait()
-	close(results)
+	close(r)
 
-	for result := range results {
+	for result := range r {
 		cTot += result
 	}
 

@@ -2,7 +2,6 @@ package days
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -29,6 +28,9 @@ type Cell struct {
 	Footprint Footprint
 }
 type Cells [][]Cell
+
+// but why is there only one set of footprints in the sand?
+// because of a bug on line 73, He replied.
 type Footprint struct {
 	Orientations []Heading
 }
@@ -40,16 +42,9 @@ type FloorMap struct {
 func Six() model.Result {
 	day := uint8(6)
 	fm := parseDay6Input("./inputs/day6")
-	fm2 := fm.copy()
+	fm2 := fm.deepCopy()
 
-	return model.Result{Day: &day, Part1: fm.calcPart1(), Part2: fm2.calcPart2()}
-}
-
-func (original *FloorMap) copy() *FloorMap {
-	// Create a deep copy of the FloorMap
-	cellsCopy := copyCells(original.Cells)
-	guardCopy := original.Guard
-	return &FloorMap{Cells: cellsCopy, Guard: guardCopy}
+	return model.Result{Day: &day, Part1: fm.calcPart1(), Part2: fm2.calcPart2(&fm)}
 }
 
 func (fm *FloorMap) calcPart1() *int {
@@ -84,15 +79,16 @@ func (fm *FloorMap) calcPart1() *int {
 	}
 }
 
-func (fm *FloorMap) calcPart2() *int {
+func (fm *FloorMap) calcPart2(originalRun *FloorMap) *int {
 	loops := 0
 
-	ogCells := copyCells(fm.Cells)
+	ogCells := fm.Cells.deepCopy()
 	ogGuard := fm.Guard
 
 	for row := 0; row < len(fm.Cells); row++ {
 		for col := 0; col < len(fm.Cells[row]); col++ {
-			if fm.Cells[row][col].Icon == '.' {
+
+			if originalRun.Cells[row][col].Icon == 'x' {
 				fm.Cells[row][col].Icon = '#'
 
 				fm.Guard = ogGuard
@@ -127,19 +123,24 @@ func (fm *FloorMap) calcPart2() *int {
 				}
 
 				fm.Cells[row][col].Icon = '.'
-				fm.Cells = copyCells(ogCells)
+				fm.Cells = ogCells.deepCopy()
 			}
 		}
 	}
 
-	// Return the total count of positions that cause the infinite loop
 	return &loops
 }
 
-func copyCells(original [][]Cell) [][]Cell {
-	copied := make([][]Cell, len(original))
+func (original FloorMap) deepCopy() FloorMap {
+	cellsCopy := original.Cells.deepCopy()
+	guardCopy := original.Guard
+	return FloorMap{Cells: cellsCopy, Guard: guardCopy}
+}
+
+func (original Cells) deepCopy() Cells {
+	copied := make(Cells, len(original))
 	for i := range original {
-		copied[i] = append([]Cell(nil), original[i]...) // deep copy of each row
+		copied[i] = append([]Cell(nil), original[i]...)
 	}
 	return copied
 }
@@ -148,35 +149,20 @@ func (fm *FloorMap) handleMovement(newRow, newCol int) int {
 	newSteps := 0
 	if fm.Cells[newRow][newCol].Icon == '#' {
 		fm.Guard.Heading = (fm.Guard.Heading + 1) % 4
-		fm.updateDirection()
 		return newSteps
 	}
 
 	fm.Cells[newRow][newCol].Footprint.Orientations = append(fm.Cells[newRow][newCol].Footprint.Orientations, fm.Guard.Heading)
 
-	fm.updateDirection()
-
 	if fm.Cells[newRow][newCol].Icon == '.' {
 		newSteps++
 	}
 
+	fm.Cells[fm.Guard.Row][fm.Guard.Col].Icon = 'x'
 	fm.Guard.Row = newRow
 	fm.Guard.Col = newCol
 
 	return newSteps
-}
-
-func (fm *FloorMap) updateDirection() {
-	switch fm.Guard.Heading {
-	case 0:
-		fm.Cells[fm.Guard.Row][fm.Guard.Col].Icon = '^'
-	case 1:
-		fm.Cells[fm.Guard.Row][fm.Guard.Col].Icon = '>'
-	case 2:
-		fm.Cells[fm.Guard.Row][fm.Guard.Col].Icon = 'v'
-	case 3:
-		fm.Cells[fm.Guard.Row][fm.Guard.Col].Icon = '<'
-	}
 }
 
 func (fm FloorMap) isRetracingSteps() bool {
@@ -221,17 +207,17 @@ func (fm FloorMap) isRetracingSteps() bool {
 	return false
 }
 
-func (fm FloorMap) printState(steps int) {
-	fmt.Print("\033[H")
+// func (fm FloorMap) printState(steps int) {
+// 	fmt.Print("\033[H")
 
-	for _, row := range fm.Cells {
-		for _, cell := range row {
-			fmt.Print(string(cell.Icon) + " ")
-		}
-		fmt.Println()
-	}
-	fmt.Println("Steps:", steps)
-}
+// 	for _, row := range fm.Cells {
+// 		for _, cell := range row {
+// 			fmt.Print(string(cell.Icon) + " ")
+// 		}
+// 		fmt.Println()
+// 	}
+// 	fmt.Println("Steps:", steps)
+// }
 
 func parseDay6Input(filePath string) FloorMap {
 	file, err := os.Open(filePath)

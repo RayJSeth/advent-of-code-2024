@@ -2,6 +2,7 @@ package days
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -23,9 +24,14 @@ type Guard struct {
 	Row int
 	Col int
 }
-
-type Cells [][]string
-
+type Cell struct {
+	Icon      rune
+	Footprint Footprint
+}
+type Cells [][]Cell
+type Footprint struct {
+	Orientations []Heading
+}
 type FloorMap struct {
 	Cells Cells
 	Guard Guard
@@ -34,12 +40,22 @@ type FloorMap struct {
 func Six() model.Result {
 	day := uint8(6)
 	fm := parseDay6Input("./inputs/day6")
-	return model.Result{Day: &day, Part1: fm.calcPart1()}
+	fm2 := fm.copy()
+
+	return model.Result{Day: &day, Part1: fm.calcPart1(), Part2: fm2.calcPart2()}
+}
+
+func (original *FloorMap) copy() *FloorMap {
+	// Create a deep copy of the FloorMap
+	cellsCopy := copyCells(original.Cells)
+	guardCopy := original.Guard
+	return &FloorMap{Cells: cellsCopy, Guard: guardCopy}
 }
 
 func (fm *FloorMap) calcPart1() *int {
 	// a journey of a thousand miles...
 	steps := 1
+
 	for {
 		// optional cool visualization mode!
 		// fm.printState(steps)
@@ -68,17 +84,79 @@ func (fm *FloorMap) calcPart1() *int {
 	}
 }
 
+func (fm *FloorMap) calcPart2() *int {
+	loops := 0
+
+	ogCells := copyCells(fm.Cells)
+	ogGuard := fm.Guard
+
+	for row := 0; row < len(fm.Cells); row++ {
+		for col := 0; col < len(fm.Cells[row]); col++ {
+			if fm.Cells[row][col].Icon == '.' {
+				fm.Cells[row][col].Icon = '#'
+
+				fm.Guard = ogGuard
+				steps := 0
+				for {
+					var newRow int
+					var newCol int
+					switch fm.Guard.Heading {
+					case 0:
+						newRow = fm.Guard.Row - 1
+						newCol = fm.Guard.Col
+					case 1:
+						newRow = fm.Guard.Row
+						newCol = fm.Guard.Col + 1
+					case 2:
+						newRow = fm.Guard.Row + 1
+						newCol = fm.Guard.Col
+					case 3:
+						newRow = fm.Guard.Row
+						newCol = fm.Guard.Col - 1
+					}
+					if newRow < 0 || newRow >= len(fm.Cells) || newCol < 0 || newCol >= len(fm.Cells[0]) {
+						break
+					}
+
+					steps += fm.handleMovement(newRow, newCol)
+
+					if fm.isRetracingSteps() {
+						loops++
+						break
+					}
+				}
+
+				fm.Cells[row][col].Icon = '.'
+				fm.Cells = copyCells(ogCells)
+			}
+		}
+	}
+
+	// Return the total count of positions that cause the infinite loop
+	return &loops
+}
+
+func copyCells(original [][]Cell) [][]Cell {
+	copied := make([][]Cell, len(original))
+	for i := range original {
+		copied[i] = append([]Cell(nil), original[i]...) // deep copy of each row
+	}
+	return copied
+}
+
 func (fm *FloorMap) handleMovement(newRow, newCol int) int {
 	newSteps := 0
-	if fm.Cells[newRow][newCol] == "#" {
+	if fm.Cells[newRow][newCol].Icon == '#' {
 		fm.Guard.Heading = (fm.Guard.Heading + 1) % 4
 		fm.updateDirection()
 		return newSteps
 	}
 
+	fm.Cells[newRow][newCol].Footprint.Orientations = append(fm.Cells[newRow][newCol].Footprint.Orientations, fm.Guard.Heading)
+
 	fm.updateDirection()
 
-	if fm.Cells[newRow][newCol] == "." {
+	if fm.Cells[newRow][newCol].Icon == '.' {
 		newSteps++
 	}
 
@@ -91,27 +169,69 @@ func (fm *FloorMap) handleMovement(newRow, newCol int) int {
 func (fm *FloorMap) updateDirection() {
 	switch fm.Guard.Heading {
 	case 0:
-		fm.Cells[fm.Guard.Row][fm.Guard.Col] = "^"
+		fm.Cells[fm.Guard.Row][fm.Guard.Col].Icon = '^'
 	case 1:
-		fm.Cells[fm.Guard.Row][fm.Guard.Col] = ">"
+		fm.Cells[fm.Guard.Row][fm.Guard.Col].Icon = '>'
 	case 2:
-		fm.Cells[fm.Guard.Row][fm.Guard.Col] = "v"
+		fm.Cells[fm.Guard.Row][fm.Guard.Col].Icon = 'v'
 	case 3:
-		fm.Cells[fm.Guard.Row][fm.Guard.Col] = "<"
+		fm.Cells[fm.Guard.Row][fm.Guard.Col].Icon = '<'
 	}
 }
 
-// func (fm FloorMap) printState(steps int) {
-// 	fmt.Print("\033[H")
+func (fm FloorMap) isRetracingSteps() bool {
+	switch fm.Guard.Heading {
+	case 0:
+		chkPos1 := fm.Guard.Row - 1
+		if chkPos1 >= 0 {
+			for _, orientation := range fm.Cells[chkPos1][fm.Guard.Col].Footprint.Orientations {
+				if orientation == fm.Guard.Heading {
+					return true
+				}
+			}
+		}
+	case 1:
+		chkPos1 := fm.Guard.Col + 1
+		if chkPos1 < len(fm.Cells[fm.Guard.Row]) {
+			for _, orientaion := range fm.Cells[fm.Guard.Row][chkPos1].Footprint.Orientations {
+				if orientaion == fm.Guard.Heading {
+					return true
+				}
+			}
+		}
+	case 2:
+		chkPos1 := fm.Guard.Row + 1
+		if chkPos1 < len(fm.Cells) {
+			for _, orientation := range fm.Cells[chkPos1][fm.Guard.Col].Footprint.Orientations {
+				if orientation == fm.Guard.Heading {
+					return true
+				}
+			}
+		}
+	case 3:
+		chkPos1 := fm.Guard.Col - 1
+		if chkPos1 >= 0 {
+			for _, orientation := range fm.Cells[fm.Guard.Row][chkPos1].Footprint.Orientations {
+				if orientation == fm.Guard.Heading {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
 
-// 	for _, row := range fm.Cells {
-// 		for _, cell := range row {
-// 			fmt.Print(cell + " ")
-// 		}
-// 		fmt.Println()
-// 	}
-// 	fmt.Println("Steps:", steps)
-// }
+func (fm FloorMap) printState(steps int) {
+	fmt.Print("\033[H")
+
+	for _, row := range fm.Cells {
+		for _, cell := range row {
+			fmt.Print(string(cell.Icon) + " ")
+		}
+		fmt.Println()
+	}
+	fmt.Println("Steps:", steps)
+}
 
 func parseDay6Input(filePath string) FloorMap {
 	file, err := os.Open(filePath)
@@ -121,12 +241,13 @@ func parseDay6Input(filePath string) FloorMap {
 	}
 	defer file.Close()
 
-	cells := [][]string{}
+	cells := [][]Cell{}
 	scanner := bufio.NewScanner(file)
 	rowNum := 0
 	guard := Guard{}
 	for scanner.Scan() {
 		row := strings.Split(scanner.Text(), "")
+		rowCells := []Cell{}
 		for colNum, cell := range row {
 			if cell == "^" {
 				guard.Heading = 0
@@ -146,8 +267,9 @@ func parseDay6Input(filePath string) FloorMap {
 				guard.Row = rowNum
 				guard.Col = colNum
 			}
+			rowCells = append(rowCells, Cell{Icon: []rune(cell)[0]})
 		}
-		cells = append(cells, row)
+		cells = append(cells, rowCells)
 		rowNum++
 	}
 	return FloorMap{Cells: cells, Guard: guard}

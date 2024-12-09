@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"rayjseth.io/aoc-24/model"
 )
@@ -23,10 +24,12 @@ type Guard struct {
 	Row int
 	Col int
 }
+
 type Cell struct {
 	Icon      rune
 	Footprint Footprint
 }
+
 type Cells [][]Cell
 
 // but why is there only one set of footprints in the sand?
@@ -34,6 +37,7 @@ type Cells [][]Cell
 type Footprint struct {
 	Orientations []Heading
 }
+
 type FloorMap struct {
 	Cells Cells
 	Guard Guard
@@ -50,10 +54,7 @@ func Six() model.Result {
 func (fm *FloorMap) calcPart1() *int {
 	// a journey of a thousand miles...
 	steps := 1
-
 	for {
-		// optional cool visualization mode!
-		// fm.printState(steps)
 		var newRow int
 		var newCol int
 		switch fm.Guard.Heading {
@@ -80,49 +81,62 @@ func (fm *FloorMap) calcPart1() *int {
 
 func (fm *FloorMap) calcPart2(originalRun *FloorMap) *int {
 	loops := 0
-	ogCells := fm.Cells.deepCopy()
 	ogGuard := fm.Guard
+	var wg sync.WaitGroup
+	rChan := make(chan int, len(fm.Cells)*len(fm.Cells[0]))
 
 	for row := 0; row < len(fm.Cells); row++ {
 		for col := 0; col < len(fm.Cells[row]); col++ {
 			if originalRun.Cells[row][col].Icon == 'x' {
-				fm.Cells[row][col].Icon = '#'
-				fm.Guard = ogGuard
-				steps := 0
+				wg.Add(1)
+				go func(row int, col int) {
+					defer wg.Done()
 
-				for {
-					var newRow int
-					var newCol int
-					switch fm.Guard.Heading {
-					case 0:
-						newRow = fm.Guard.Row - 1
-						newCol = fm.Guard.Col
-					case 1:
-						newRow = fm.Guard.Row
-						newCol = fm.Guard.Col + 1
-					case 2:
-						newRow = fm.Guard.Row + 1
-						newCol = fm.Guard.Col
-					case 3:
-						newRow = fm.Guard.Row
-						newCol = fm.Guard.Col - 1
+					fmCopy := fm.deepCopy()
+					fmCopy.Cells[row][col].Icon = '#'
+					fmCopy.Guard = ogGuard
+					steps := 0
+					for {
+						var newRow int
+						var newCol int
+						switch fmCopy.Guard.Heading {
+						case 0:
+							newRow = fmCopy.Guard.Row - 1
+							newCol = fmCopy.Guard.Col
+						case 1:
+							newRow = fmCopy.Guard.Row
+							newCol = fmCopy.Guard.Col + 1
+						case 2:
+							newRow = fmCopy.Guard.Row + 1
+							newCol = fmCopy.Guard.Col
+						case 3:
+							newRow = fmCopy.Guard.Row
+							newCol = fmCopy.Guard.Col - 1
+						}
+						if newRow < 0 || newRow >= len(fmCopy.Cells) || newCol < 0 || newCol >= len(fmCopy.Cells[0]) {
+							break
+						}
+
+						steps += fmCopy.handleMovement(newRow, newCol)
+
+						if fmCopy.isRetracingSteps() {
+							rChan <- 1
+							return
+						}
 					}
-					if newRow < 0 || newRow >= len(fm.Cells) || newCol < 0 || newCol >= len(fm.Cells[0]) {
-						break
-					}
 
-					steps += fm.handleMovement(newRow, newCol)
-
-					if fm.isRetracingSteps() {
-						loops++
-						break
-					}
-				}
-
-				fm.Cells[row][col].Icon = '.'
-				fm.Cells = ogCells.deepCopy()
+					fmCopy.Cells[row][col].Icon = '.'
+					rChan <- 0
+				}(row, col)
 			}
 		}
+	}
+
+	wg.Wait()
+	close(rChan)
+
+	for loopCount := range rChan {
+		loops += loopCount
 	}
 
 	return &loops
@@ -209,23 +223,10 @@ func (fm FloorMap) isRetracingSteps() bool {
 	return false
 }
 
-// func (fm FloorMap) printState(steps int) {
-// 	fmt.Print("\033[H")
-
-// 	for _, row := range fm.Cells {
-// 		for _, cell := range row {
-// 			fmt.Print(string(cell.Icon) + " ")
-// 		}
-// 		fmt.Println()
-// 	}
-// 	fmt.Println("Steps:", steps)
-// }
-
 func parseDay6Input(filePath string) FloorMap {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("Error opening file at %s", filePath)
-
 	}
 	defer file.Close()
 

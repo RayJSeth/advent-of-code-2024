@@ -17,6 +17,8 @@ type Block struct {
 	Len    int
 }
 
+type Blocks []Block
+
 func Nine() model.Result {
 	day := uint8(9)
 	disk := parseDay9Input("./inputs/day9")
@@ -24,10 +26,8 @@ func Nine() model.Result {
 }
 
 func (d Disk) calcPart1() *int {
-	cSum := 0
 	fragged := make(Disk, len(d))
 	copy(fragged, d)
-
 	left := 0
 	right := len(fragged) - 1
 
@@ -49,52 +49,54 @@ func (d Disk) calcPart1() *int {
 		}
 	}
 
-	for i, f := range fragged {
-		if f == "." {
-			break
-		}
-		fI, _ := strconv.Atoi(f)
-		cSum += i * fI
-	}
-
-	return &cSum
+	return fragged.calcChecksum()
 }
 
 func (d Disk) calcPart2() *int {
-	cSum := 0
-
-	bs := d.toBlocks()
-	defragged := make([]Block, len(bs))
-	copy(defragged, bs)
-
-	left := 0
-	right := len(defragged) - 1
+	blocks := d.toBlocks()
 
 	for {
-		for left < len(defragged) && defragged[left].ID != "." {
-			left++
-		}
+		moved := false
 
-		for right >= 0 && defragged[right].ID == "." {
-			right--
-		}
+		for i := len(blocks) - 1; i >= 0; i-- {
+			if blocks[i].IsFile {
+				for j := 0; j < i; j++ {
+					if !blocks[j].IsFile && blocks[j].Len >= blocks[i].Len {
+						if blocks[j].Len == blocks[i].Len {
+							blocks[i], blocks[j] = blocks[j], blocks[i]
+						} else {
+							blocks[j].Len -= blocks[i].Len
+							blocks = append(blocks[:j], append(Blocks{blocks[i]}, blocks[j:]...)...)
+							blocks[i+1].ID = blocks[j+1].ID
+							// omfg I was banging my head against the wall for hours  because I forgot to flip this.
+							// "Dont' worry about swapping" I said, "You can just modify the right side directly" I said.
+							// SMH my head.
+							blocks[i+1].IsFile = false
+						}
 
-		if left < right {
+						moved = true
+						break
+					}
+				}
+			}
+			if moved {
+				break
+			}
+		}
+		if !moved {
 			break
-			// check if left is empty space "." and has Len >= right Len
-			// if so, swap right into left, and swap the equivalent number of "." right
-			// this may leave some "." leftover on the left side after the swapped values
-		} else {
-			break
 		}
-
 	}
 
-	return &cSum
+	// yeah I know I coulda calc'd based on blocks but after getting stuck on that silly
+	// isFile flip for a long time, I honestly can't be arsed - and I already have a known
+	// good calc for the disk format :shrug:
+	return blocks.toDisk().calcChecksum()
 }
 
-func (d Disk) toBlocks() []Block {
-	bs := []Block{}
+func (d Disk) toBlocks() Blocks {
+	bs := Blocks{}
+
 	if len(d) > 0 {
 		currId := "0"
 		blkLen := 0
@@ -107,8 +109,36 @@ func (d Disk) toBlocks() []Block {
 				blkLen = 1
 			}
 		}
+		bs = append(bs, Block{ID: currId, IsFile: currId != ".", Len: blkLen})
 	}
+
 	return bs
+}
+
+func (bs Blocks) toDisk() Disk {
+	disk := Disk{}
+
+	for _, b := range bs {
+		for i := 0; i < b.Len; i++ {
+			disk = append(disk, b.ID)
+		}
+	}
+
+	return disk
+}
+
+func (d Disk) calcChecksum() *int {
+	cSum := 0
+
+	for i, f := range d {
+		if f == "." {
+			continue
+		}
+		fI, _ := strconv.Atoi(f)
+		cSum += i * fI
+	}
+
+	return &cSum
 }
 
 func parseDay9Input(filePath string) Disk {
@@ -118,6 +148,7 @@ func parseDay9Input(filePath string) Disk {
 		log.Fatalf("Error opening file at %s", filePath)
 	}
 	fID := 0
+
 	for i, s := range strings.Split(string(file), "") {
 		isFile := i%2 == 0
 		blockLen, err := strconv.Atoi(s)
@@ -135,5 +166,6 @@ func parseDay9Input(filePath string) Disk {
 			}
 		}
 	}
+
 	return Disk(disk)
 }

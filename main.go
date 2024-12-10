@@ -11,4 +11,5 @@ func main() {
 	days.Six().Print()
 	days.Seven().Print()
 	days.Eight().Print()
+	days.Nine().Print()
 }

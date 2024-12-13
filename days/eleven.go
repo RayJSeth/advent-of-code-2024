@@ -2,6 +2,7 @@ package days
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"math"
 	"os"
@@ -26,7 +27,7 @@ func Eleven() model.Result {
 func (stones Stones) calcPart1() *int {
 	tot := 0
 
-	for range 25 {
+	for rIter := range 45 {
 		var newStones Stones
 
 		for i := 0; i < len(stones); i++ {
@@ -48,6 +49,8 @@ func (stones Stones) calcPart1() *int {
 		}
 
 		stones = newStones
+		fmt.Println(rIter)
+		fmt.Println(len(stones))
 	}
 
 	tot = len(stones)

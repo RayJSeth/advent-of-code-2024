@@ -3,6 +3,7 @@ package days
 import (
 	"bufio"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -33,12 +34,12 @@ func (stones Stones) calcPart1() *int {
 			if stone == 0 {
 				newStones = append(newStones, 1)
 			} else {
-				stoneStr := strconv.Itoa(stone)
-				stoneStrLen := len(stoneStr)
+				numDigits := int(math.Floor(math.Log10(float64(stone)))) + 1
 
-				if stoneStrLen%2 == 0 {
-					left, _ := strconv.Atoi(stoneStr[:stoneStrLen/2])
-					right, _ := strconv.Atoi(stoneStr[stoneStrLen/2:])
+				if numDigits%2 == 0 {
+					divisor := int(math.Pow(10, float64(numDigits/2)))
+					left := stone / divisor
+					right := stone % divisor
 					newStones = append(newStones, left, right)
 				} else {
 					newStones = append(newStones, stone*2024)

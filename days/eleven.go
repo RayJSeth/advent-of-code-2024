@@ -27,7 +27,7 @@ func Eleven() model.Result {
 func (stones Stones) calcPart1() *int {
 	tot := 0
 
-	for rIter := range 45 {
+	for rIter := range 25 {
 		var newStones Stones
 
 		for i := 0; i < len(stones); i++ {

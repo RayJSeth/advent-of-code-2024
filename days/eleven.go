@@ -2,7 +2,6 @@ package days
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"math"
 	"os"
@@ -12,49 +11,64 @@ import (
 	"rayjseth.io/aoc-24/model"
 )
 
-type Stones []int
+type Stone int
+type Stones []Stone
+
+type BlinkRes struct {
+	Stone Stone
+	Depth int
+}
 
 func Eleven() model.Result {
 	day := uint8(11)
 	stones := parseDay11Input("./inputs/day11")
 
-	sCopy2 := make(Stones, len(stones))
-	copy(sCopy2, stones)
-
-	return model.Result{Day: &day, Part1: sCopy2.calcPart1()}
+	memo := &map[BlinkRes]int{}
+	return model.Result{Day: &day, Part1: stones.calcPart1(memo), Part2: stones.calcPart2(memo)}
 }
 
-func (stones Stones) calcPart1() *int {
+func (stones Stones) calcPart1(memo *map[BlinkRes]int) *int {
 	tot := 0
-
-	for rIter := range 25 {
-		var newStones Stones
-
-		for i := 0; i < len(stones); i++ {
-			stone := stones[i]
-			if stone == 0 {
-				newStones = append(newStones, 1)
-			} else {
-				numDigits := int(math.Floor(math.Log10(float64(stone)))) + 1
-
-				if numDigits%2 == 0 {
-					divisor := int(math.Pow(10, float64(numDigits/2)))
-					left := stone / divisor
-					right := stone % divisor
-					newStones = append(newStones, left, right)
-				} else {
-					newStones = append(newStones, stone*2024)
-				}
-			}
-		}
-
-		stones = newStones
-		fmt.Println(rIter)
-		fmt.Println(len(stones))
+	for _, stone := range stones {
+		tot += stone.blink(25, memo)
 	}
-
-	tot = len(stones)
 	return &tot
+}
+
+func (stones Stones) calcPart2(memo *map[BlinkRes]int) *int {
+	tot := 0
+	for _, stone := range stones {
+		tot += stone.blink(75, memo)
+	}
+	return &tot
+}
+
+func (stone Stone) blink(nBlinks int, memo *map[BlinkRes]int) int {
+	result := 0
+	if nBlinks > 0 {
+		mRes, mExists := (*memo)[BlinkRes{Stone: stone, Depth: nBlinks}]
+		if mExists {
+			result += mRes
+		} else {
+			numDigits := int(math.Floor(math.Log10(float64(stone)))) + 1
+			if stone == 0 {
+				result += Stone(1).blink(nBlinks-1, memo)
+			} else if numDigits%2 == 0 {
+				divisor := int(math.Pow(10, float64(numDigits/2)))
+				left := Stone(int(stone) / divisor)
+				right := Stone(int(stone) % divisor)
+				result += left.blink(nBlinks-1, memo)
+				result += right.blink(nBlinks-1, memo)
+			} else {
+				result += (stone * 2024).blink(nBlinks-1, memo)
+			}
+
+			(*memo)[BlinkRes{Stone: stone, Depth: nBlinks}] = result
+		}
+	} else {
+		return 1
+	}
+	return result
 }
 
 func parseDay11Input(filePath string) Stones {
@@ -72,7 +86,7 @@ func parseDay11Input(filePath string) Stones {
 			if err != nil {
 				log.Panicf("Malformed input, expected only integers and whitespace - encountered %s", f)
 			}
-			stones = append(stones, fI)
+			stones = append(stones, Stone(fI))
 		}
 	}
 
